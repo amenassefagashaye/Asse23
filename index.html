@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>አሰፋ ዲጂታል ቢንጎ - RTC ባለብዙ ተጫዋች</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="border-container">
+        <div class="main-container">
+            <div class="page-border green"></div>
+            <div class="page-border yellow"></div>
+            <div class="page-border red"></div>
+
+            <!-- Welcome Page -->
+            <div class="page-container active" id="page0">
+                <div class="page-content">
+                    <div class="welcome-content">
+                        <h1 class="game-title amharic-text">አሰፋ ዲጂታል ቢንጎ</h1>
+                        <h2 class="subtitle">RTC ባለብዙ ተጫዋች ጨዋታ</h2>
+                        
+                        <div class="connection-status">
+                            <div class="status-dot" id="connectionDot"></div>
+                            <span id="connectionStatus">ምንም ግንኙነት የለም</span>
+                        </div>
+
+                        <div class="multiplayer-options">
+                            <button class="game-btn btn-success" onclick="showPage(6)">
+                                <span class="btn-icon">🏠</span>
+                                <span class="btn-text">ክፍል ፍጠር</span>
+                            </button>
+                            
+                            <button class="game-btn btn-info" onclick="showPage(7)">
+                                <span class="btn-icon">🔗</span>
+                                <span class="btn-text">ክፍል ላይ ተቀላቀል</span>
+                            </button>
+                            
+                            <button class="game-btn btn-secondary" onclick="showPage(1)">
+                                <span class="btn-icon">🎮</span>
+                                <span class="btn-text">ብቸኛ ሆነው ይጫወቱ</span>
+                            </button>
+                        </div>
+
+                        <div class="online-players">
+                            <h3 class="amharic-text">ከመስመር ላይ ያሉ ተጫዋቾች</h3>
+                            <div class="players-grid" id="onlinePlayers">
+                                <!-- Players will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multiplayer Lobby -->
+            <div class="page-container" id="page6">
+                <div class="page-content">
+                    <div class="page-header amharic-text">ክፍል ፍጠር</div>
+                    
+                    <div class="lobby-container">
+                        <div class="form-group">
+                            <label for="hostName" class="amharic-text">የአስተናጋጅ ስም</label>
+                            <input type="text" id="hostName" class="form-control" placeholder="ስምዎን ያስገቡ">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="roomName" class="amharic-text">የክፍሉ ስም</label>
+                            <input type="text" id="roomName" class="form-control" placeholder="የክፍሉ ስም">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="maxPlayers" class="amharic-text">ከፍተኛ ተጫዋቾች</label>
+                            <select id="maxPlayers" class="form-control">
+                                <option value="2">2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                                <option value="16">16</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gameType" class="amharic-text">የጨዋታ አይነት</label>
+                            <select id="gameType" class="form-control">
+                                <option value="75ball">75-ቢንጎ</option>
+                                <option value="90ball">90-ቢንጎ</option>
+                                <option value="30ball">30-ቢንጎ</option>
+                                <option value="pattern">ንድፍ ቢንጎ</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="stakeAmount" class="amharic-text">ውርርድ መጠን</label>
+                            <select id="stakeAmount" class="form-control">
+                                <option value="25">25 ብር</option>
+                                <option value="50">50 ብር</option>
+                                <option value="100">100 ብር</option>
+                                <option value="200">200 ብር</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="fixed-controls">
+                    <button class="control-btn btn-secondary" onclick="showPage(0)">ተመለስ</button>
+                    <button class="control-btn btn-success" onclick="createRoom()">ክፍል ፍጠር</button>
+                </div>
+            </div>
+
+            <!-- Join Room -->
+            <div class="page-container" id="page7">
+                <div class="page-content">
+                    <div class="page-header amharic-text">ክፍል ላይ ተቀላቀል</div>
+                    
+                    <div class="lobby-container">
+                        <div class="form-group">
+                            <label for="joinName" class="amharic-text">ስምዎ</label>
+                            <input type="text" id="joinName" class="form-control" placeholder="ስምዎን ያስገቡ">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="roomCode" class="amharic-text">የክፍሉ ኮድ</label>
+                            <input type="text" id="roomCode" class="form-control" placeholder="4-የቃላት ኮድ">
+                        </div>
+                        
+                        <div class="rooms-list">
+                            <h4 class="amharic-text">የሚገኙ ክፍሎች</h4>
+                            <div id="availableRooms">
+                                <!-- Rooms will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="fixed-controls">
+                    <button class="control-btn btn-secondary" onclick="showPage(0)">ተመለስ</button>
+                    <button class="control-btn btn-success" onclick="joinRoom()">ተቀላቀል</button>
+                </div>
+            </div>
+
+            <!-- Game Lobby -->
+            <div class="page-container" id="page8">
+                <div class="page-content">
+                    <div class="lobby-header">
+                        <div class="room-info">
+                            <h3 class="room-name amharic-text" id="roomNameDisplay"></h3>
+                            <div class="room-code amharic-text">ኮድ: <span id="roomCodeDisplay"></span></div>
+                        </div>
+                        <div class="host-info amharic-text">
+                            አስተናጋጅ: <span id="hostDisplay"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="game-lobby">
+                        <div class="players-section">
+                            <h4 class="amharic-text">ተጫዋቾች (<span id="playerCount">0</span>/<span id="maxPlayersDisplay">0</span>)</h4>
+                            <div class="players-list" id="playersList">
+                                <!-- Players in room -->
+                            </div>
+                        </div>
+                        
+                        <div class="game-info-section">
+                            <div class="info-card">
+                                <div class="info-title amharic-text">የጨዋታ መረጃ</div>
+                                <div class="info-content">
+                                    <div class="info-item">
+                                        <span class="amharic-text">ዓይነት:</span>
+                                        <span id="gameTypeDisplay" class="amharic-text"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="amharic-text">ውርርድ:</span>
+                                        <span id="stakeDisplay" class="amharic-text"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="amharic-text">ሽልማት:</span>
+                                        <span id="prizeDisplay" class="amharic-text"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="chat-section">
+                                <div class="chat-messages" id="chatMessages">
+                                    <!-- Chat messages -->
+                                </div>
+                                <div class="chat-input">
+                                    <input type="text" id="chatInput" class="form-control" placeholder="መልእክት ይጻፉ...">
+                                    <button class="chat-send-btn" onclick="sendChatMessage()">➤</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="fixed-controls">
+                    <button class="control-btn btn-danger" onclick="leaveRoom()">ይተዉ</button>
+                    <button class="control-btn btn-success" id="startGameBtn" onclick="startGame()">ጨዋታውን ጀምር</button>
+                </div>
+            </div>
+
+            <!-- Multiplayer Game Board -->
+            <div class="page-container" id="page9">
+                <div class="game-header">
+                    <div class="game-info">
+                        <div class="room-info-small">
+                            <span class="amharic-text" id="multiplayerRoomName"></span>
+                            <span class="player-count" id="gamePlayerCount"></span>
+                        </div>
+                        <div class="game-controls-top">
+                            <button class="game-control-btn" onclick="toggleChat()">💬</button>
+                            <button class="game-control-btn" onclick="showPlayersModal()">👥</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="multiplayer-game-container">
+                    <div class="game-board-wrapper" id="multiplayerBoard">
+                        <!-- Multiplayer game board -->
+                    </div>
+                    
+                    <div class="multiplayer-controls">
+                        <div class="called-numbers-container">
+                            <div class="called-numbers-header amharic-text">የተጠሩ ቁጥሮች</div>
+                            <div class="called-numbers" id="multiplayerCalledNumbers">
+                                <!-- Called numbers -->
+                            </div>
+                        </div>
+                        
+                        <div class="caller-section">
+                            <div class="caller-display amharic-text">
+                                አሁን የሚጠራ: <span id="currentCaller"></span>
+                            </div>
+                            <div class="current-number-display" id="multiplayerCurrentNumber">
+                                <!-- Current number -->
+                            </div>
+                            <button class="call-btn" id="callNumberBtn" onclick="callNumber()">
+                                ቁጥር ጥራ
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="in-game-chat" id="inGameChat">
+                        <div class="chat-messages-small" id="inGameMessages"></div>
+                        <div class="chat-input-small">
+                            <input type="text" id="inGameChatInput" placeholder="መልእክት...">
+                            <button onclick="sendInGameChat()">➤</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="game-controls-bottom">
+                    <button class="control-btn btn-info" onclick="showPatterns()">ንድፎች</button>
+                    <button class="control-btn btn-danger" onclick="leaveGame()">ጨዋታውን ይተዉ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="playersModal">
+        <div class="modal-content">
+            <div class="modal-header amharic-text">ተጫዋቾች</div>
+            <div class="modal-body">
+                <div id="gamePlayersList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="control-btn btn-secondary" onclick="closeModal('playersModal')">ዝጋ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="winnerModal">
+        <div class="modal-content winner-modal">
+            <div class="winner-header">🎉 ቢንጎ! 🎉</div>
+            <div class="winner-name amharic-text" id="winnerNameDisplay"></div>
+            <div class="winning-pattern amharic-text" id="winningPatternDisplay"></div>
+            <div class="win-amount" id="winnerAmountDisplay"></div>
+            <div class="winner-message amharic-text">አሸነፈ!</div>
+            <div class="modal-footer">
+                <button class="control-btn btn-success" onclick="continueAfterWin()">ቀጥል</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+    <script src="rtc-client.js"></script>
+</body>
+</html>
