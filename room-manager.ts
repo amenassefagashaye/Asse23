@@ -1,4 +1,3 @@
-import { WebSocket } from "@std/websocket";
 import { v4 } from "@std/uuid";
 
 export interface Player {
@@ -8,7 +7,6 @@ export interface Player {
   isHost: boolean;
   isReady: boolean;
   score: number;
-  board?: number[];
 }
 
 export interface Room {
@@ -32,7 +30,7 @@ export interface Room {
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
-  private roomCodes: Set<string> = new Set();
+  private roomCodes: Set<string> = new Map();
   private gameManager: any;
 
   constructor(gameManager: any) {
@@ -52,7 +50,7 @@ export class RoomManager {
       code = `${word1}-${word2}`;
     } while (this.roomCodes.has(code));
     
-    this.roomCodes.add(code);
+    this.roomCodes.set(code, code);
     return code;
   }
 
@@ -63,40 +61,48 @@ export class RoomManager {
     gameType: string;
     stake: number;
   }) {
-    const roomId = v4.generate();
-    const roomCode = this.generateRoomCode();
-    
-    const room: Room = {
-      id: roomId,
-      code: roomCode,
-      name: data.roomName,
-      hostId: roomId, // Temporary, will be updated when host connects via WebSocket
-      hostName: data.hostName,
-      gameType: data.gameType,
-      stake: data.stake,
-      maxPlayers: data.maxPlayers,
-      players: new Map(),
-      gameStarted: false,
-      createdAt: Date.now(),
-      settings: {
-        autoCallNumbers: true,
-        callInterval: 7000,
-        winPatterns: this.getWinPatterns(data.gameType)
-      }
-    };
-    
-    this.rooms.set(roomCode, room);
-    
-    // Generate player ID for host
-    const playerId = v4.generate();
-    
-    return {
-      success: true,
-      roomCode,
-      roomId,
-      playerId,
-      message: "Room created successfully"
-    };
+    try {
+      const roomId = v4.generate();
+      const roomCode = this.generateRoomCode();
+      
+      const room: Room = {
+        id: roomId,
+        code: roomCode,
+        name: data.roomName,
+        hostId: roomId, // Temporary ID
+        hostName: data.hostName,
+        gameType: data.gameType,
+        stake: data.stake,
+        maxPlayers: data.maxPlayers,
+        players: new Map(),
+        gameStarted: false,
+        createdAt: Date.now(),
+        settings: {
+          autoCallNumbers: true,
+          callInterval: 7000,
+          winPatterns: this.getWinPatterns(data.gameType)
+        }
+      };
+      
+      this.rooms.set(roomCode, room);
+      this.gameManager.incrementRoomsCount();
+      
+      // Generate player ID for host
+      const playerId = v4.generate();
+      
+      return {
+        success: true,
+        roomCode,
+        roomId,
+        playerId,
+        message: "Room created successfully"
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 
   async joinRoom(data: {
@@ -136,38 +142,60 @@ export class RoomManager {
       maxPlayers: room.maxPlayers,
       gameType: room.gameType,
       stake: room.stake,
-      currentPlayers: room.players.size + 1
+      currentPlayers: room.players.size + 1,
+      settings: room.settings
     };
   }
 
-  addPlayerToRoom(roomCode: string, playerId: string, socket: WebSocket) {
+  addPlayerToRoom(roomCode: string, playerId: string, socket: WebSocket, playerName: string) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
     
     // If this is the first player and host hasn't been set, make them host
-    if (room.players.size === 0 && !room.hostId) {
+    let isHost = false;
+    if (room.players.size === 0) {
+      isHost = true;
       room.hostId = playerId;
+      room.hostName = playerName;
+    } else if (room.hostId === playerId) {
+      isHost = true;
     }
     
     const player: Player = {
       id: playerId,
-      name: `Player ${room.players.size + 1}`, // Will be updated when player sends name
+      name: playerName,
       socket,
-      isHost: playerId === room.hostId,
+      isHost,
       isReady: false,
       score: 0
     };
     
     room.players.set(playerId, player);
     
-    console.log(`Player ${playerId} joined room ${roomCode}. Total players: ${room.players.size}`);
+    // Add to game manager
+    this.gameManager.addPlayer({
+      id: playerId,
+      name: playerName,
+      socket,
+      isReady: false,
+      score: 0,
+      board: [],
+      markedNumbers: new Set(),
+      joinedAt: Date.now()
+    });
+    
+    console.log(`Player ${playerName} joined room ${roomCode}. Total players: ${room.players.size}`);
   }
 
   removePlayerFromRoom(roomCode: string, playerId: string) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
     
+    const player = room.players.get(playerId);
     room.players.delete(playerId);
+    
+    // Remove from game manager
+    this.gameManager.removePlayer(playerId);
     
     // If host left and there are other players, assign new host
     if (playerId === room.hostId && room.players.size > 0) {
@@ -180,15 +208,20 @@ export class RoomManager {
       this.broadcastToRoom(roomCode, {
         type: "newHost",
         hostId: newHost.id,
-        hostName: newHost.name
+        hostName: newHost.name,
+        timestamp: Date.now()
       });
     }
     
-    // If room is empty, delete it
+    // If room is empty, delete it after some time
     if (room.players.size === 0) {
-      this.rooms.delete(roomCode);
-      this.roomCodes.delete(roomCode);
-      console.log(`Room ${roomCode} deleted`);
+      setTimeout(() => {
+        if (this.rooms.get(roomCode)?.players.size === 0) {
+          this.rooms.delete(roomCode);
+          this.roomCodes.delete(roomCode);
+          console.log(`Room ${roomCode} deleted due to inactivity`);
+        }
+      }, 300000); // 5 minutes
     }
   }
 
@@ -224,6 +257,14 @@ export class RoomManager {
     }
     
     return availableRooms;
+  }
+
+  getRoomCount(): number {
+    return this.rooms.size;
+  }
+
+  getTotalRoomsCreated(): number {
+    return this.gameManager.getTotalRoomsCreated();
   }
 
   private broadcastToRoom(roomCode: string, message: any) {
